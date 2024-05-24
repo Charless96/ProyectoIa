@@ -21,7 +21,6 @@ get_upper_tri <- function(cormat){
   return(cormat)
 }
 
-
 ########################## Lectura de datos ##########################
 DF <- read.csv("student-mat.csv", sep = ";")
 
@@ -128,8 +127,7 @@ print(ggheatmap)
 
 
 ########################## ANTES DE LA TAREA DE ML ########################################
-
-### Discretización de variables (age, absences y G3)
+############## Discretización de variables (age, absences y G3) ###########################
 
 ## G3
 
@@ -171,29 +169,73 @@ mtext("Discretización de absences", outer = TRUE, line = -2, cex = 1.5)
 #Paso 1. Preprocesamiento: Eliminar variables dependientes y no discretizadas.
 
 DF$age <- DF$ageDisc
+DF$absences <- DF$absencesDisc
 DF$failures <- DF$failuresDisc
 DF$G3 <- DF$G3Disc
 
 DF <- DF[,!names(DF) %in% c("G1", "G2","ageDisc","G3Disc", "absencesDisc", "Dalc", "Medu")]
 
-colnames(DF)
-
-
-### Paso 2. Separación del dataset
+### Paso 2. Separación del dataset (80 - 20)
 train_index <- sample(1:nrow(DF), 0.7*nrow(DF))
 train_data <- DF[train_index,]
 test_data <- DF[-train_index,]
 
 ### Paso 3 A. Aprendizaje del Naive Bayes Classifier
+
+## Calcular las probabilidades de cada clase (Aprobado/Reprobado)
+calcular_priori <- function(data, columna){
+  #Obtener posibles valores (en este caso es 1 y 0)
+  clases <- unique(data[[columna]])
+  
+  #Para cada posible valor, se aplica la funcion para obtener la prob.
+  priori <- sapply(clases, function(clase){
+    sum(data[[columna]] == clase) / nrow(data)
+  })
+  
+  #Se incluyen sus nombres para una mejor visualizacion
+  names(priori) <- clases
+  return(priori)
+}
+
+colEtiqueta <- colnames(train_data)[ncol(train_data)]
+priori <- calcular_priori(train_data, colEtiqueta)
+
+
 #Calcular las probs condicionales
 
-calcular_probabilidades = function(data, variable, clase){
-  total <- nrow(data)
-  #Suavizacion de laplace: Nos ayuda a evitar la probabilidad de cero
-  # Prob condicional (no se aplica todavia el log)
+colAtributos <- colnames(train_data)[-ncol(train_data)]
+
+probsCodicionales <- sapply(colAtributos, function(atributo){
+  #print(atributo)
+  frecuenciasAtributo <- table(train_data[[atributo]], train_data[[colEtiqueta]]) + 1 #Para evitar 0's
+  probsAtributo <- prop.table(frecuenciasAtributo, margin = 2) #Margin 2 es para que sea por columnas
+  return(probsAtributo)
+})
+
+#En este punto ya se tienen las probabilidades condicionales para cada atributo.
+
+#Consulta del naive bayes
+
+prediccion <- function(datos, priori, probsCondicionales, nombresColumnas){
+  logAprobado <- log(priori["1"])
+  logReprobado <- log(priori["0"])
   
-  probs <- colSums(data[data$Sentimientos == clase,-ncol(data)])+1
-  probs <- probs/(sum(probs)+ncol(data)-1)
-  
-  return(probs)
+  for(columna in nombresColumnas){
+    valor <- as.character(datos[[columna]])  # Se usara como indice
+    logAprobado <- logAprobado + log(probsCondicionales[[columna]][valor,"1"])
+    logReprobado <- logReprobado + log(probsCondicionales[[columna]][valor,"0"])
+  }
+  inferencia <- ifelse(logAprobado>logReprobado,1,0)
+  return(inferencia)
 }
+
+# Obtener las predicciones
+predicciones <- apply(test_data[, -ncol(test_data)], 1, prediccion, priori, probsCodicionales, colAtributos)
+
+#Evaluar el NBC mediante la matriz de confusion
+table(predicciones, test_data$G3)
+
+#Paso 5. Calcular la precision del modelo aprendido
+
+rendimiento <- sum(predicciones==test_data$G3) / nrow(test_data)
+rendimiento
