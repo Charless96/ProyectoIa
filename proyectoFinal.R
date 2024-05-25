@@ -1,5 +1,15 @@
 setwd("C:/Users/erick/Documents/Universidad/Sexto semestre/6 Ciencia Datos R")
 
+## 70 - 30
+#28 -> 76%
+#389 -> 79%
+
+## 80 - 20
+#68 -> 79%
+#374 -> 81%
+set.seed(9)
+
+
 ########################## Importar librerias ##########################
 library(moments)
 library(ggplot2)
@@ -170,7 +180,7 @@ mtext("Discretización de absences", outer = TRUE, line = -2, cex = 1.5)
 
 DF$age <- DF$ageDisc
 DF$absences <- DF$absencesDisc
-DF$failures <- DF$failuresDisc
+#DF$failures <- DF$failuresDisc
 DF$G3 <- DF$G3Disc
 
 DF <- DF[,!names(DF) %in% c("G1", "G2","ageDisc","G3Disc", "absencesDisc", "Dalc", "Medu")]
@@ -239,3 +249,6 @@ table(predicciones, test_data$G3)
 
 rendimiento <- sum(predicciones==test_data$G3) / nrow(test_data)
 rendimiento
+
+# nrow(DF[DF$G3==0,])
+# nrow(DF[DF$G3==1,])
