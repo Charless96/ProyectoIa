@@ -1,16 +1,4 @@
 setwd("C:/Users/erick/Documents/Universidad/Sexto semestre/6 Ciencia Datos R")
-
-### SEMILLAS ###
-
-## 80 - 20
-#68 -> 83%
-#515 -> 84%
-#5219 -> 86%
-
-## 70 - 30
-#68 -> 80%
-#2820 -> 84%
-
 set.seed(68)
 
 ########################## Importar librerias ##########################
